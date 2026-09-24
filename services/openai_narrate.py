@@ -7,7 +7,15 @@ import os
 import time
 from typing import Any
 
-from config import OPENAI_API_KEY, OPENAI_MODEL
+from config import OPENAI_MODEL
+
+
+def model_name() -> str:
+    return os.environ.get("OPENAI_MODEL", OPENAI_MODEL)
+
+
+def is_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
 
 
 def _extract_text(resp: Any) -> str:
@@ -38,13 +46,15 @@ def _usage(resp: Any) -> dict:
     return out
 
 
-def narrate(project_id: str, analysis: dict[str, Any], api_key: str | None = None) -> dict:
-    key = (api_key or OPENAI_API_KEY or os.environ.get("OPENAI_API_KEY") or "").strip()
+def narrate(project_id: str, analysis: dict[str, Any]) -> dict:
+    """Generate a narrative using the server-side key only."""
+    key = os.environ.get("OPENAI_API_KEY", "").strip()
+    model = model_name()
     if not key:
         return {
             "ok": False,
-            "error": "OPENAI_API_KEY not set. Paste a key in the sidebar or set the env var.",
-            "model": OPENAI_MODEL,
+            "error": "OPENAI_API_KEY is not configured on the server.",
+            "model": model,
         }
 
     try:
@@ -53,7 +63,7 @@ def narrate(project_id: str, analysis: dict[str, Any], api_key: str | None = Non
         return {
             "ok": False,
             "error": "openai package not installed. pip install openai",
-            "model": OPENAI_MODEL,
+            "model": model,
         }
 
     # Keep prompt compact — structured metrics already computed locally
@@ -91,7 +101,7 @@ def narrate(project_id: str, analysis: dict[str, Any], api_key: str | None = Non
     t0 = time.perf_counter()
     try:
         resp = client.responses.create(
-            model=OPENAI_MODEL,
+            model=model,
             reasoning={"effort": "low"},
             input=[
                 {"role": "system", "content": system},
@@ -101,7 +111,7 @@ def narrate(project_id: str, analysis: dict[str, Any], api_key: str | None = Non
         duration_ms = int((time.perf_counter() - t0) * 1000)
         return {
             "ok": True,
-            "model": OPENAI_MODEL,
+            "model": model,
             "narrative": _extract_text(resp),
             "duration_ms": duration_ms,
             "usage": _usage(resp),
@@ -110,7 +120,7 @@ def narrate(project_id: str, analysis: dict[str, Any], api_key: str | None = Non
     except Exception as e:  # noqa: BLE001 — surface API errors to UI
         return {
             "ok": False,
-            "model": OPENAI_MODEL,
+            "model": model,
             "error": str(e),
             "duration_ms": int((time.perf_counter() - t0) * 1000),
         }

@@ -21,7 +21,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="/static/styles.css?v=11" />
+  <link rel="stylesheet" href="/static/styles.css?v=12" />
 </head>
 <body>
   <aside class="sidebar" aria-label="Projects">
@@ -34,12 +34,12 @@
     </div>
     <nav id="projectNav" class="nav" aria-label="Project switcher"></nav>
     <div class="sidebar-foot">
-      <label class="key-label" for="apiKey">
+      <div class="key-label">
         <span class="key-dot" id="keyState" aria-hidden="true"></span>
-        OpenAI API key
-      </label>
-      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
-      <div class="muted tiny">Model: <code>gpt-5.6-sol</code> · stored only in this browser</div>
+        <span id="keyStatus">Checking OpenAI…</span>
+      </div>
+      <div class="muted tiny">Server variable: <code>OPENAI_API_KEY</code></div>
+      <div class="muted tiny">Model: <code id="openaiModel">gpt-5.6-sol</code></div>
     </div>
   </aside>
 
@@ -177,6 +177,6 @@
     </section>
   </main>
 
-  <script src="/static/app.js?v=11"></script>
+  <script src="/static/app.js?v=12"></script>
 </body>
 </html>

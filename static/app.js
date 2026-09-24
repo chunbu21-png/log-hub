@@ -14,6 +14,7 @@
     logsLastActivePath: null,
     requestToken: 0,
     lastSearch: { query: "", index: 0 },
+    openaiConfigured: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -22,7 +23,6 @@
   const fileInput = $("fileInput");
   const fileList = $("fileList");
   const results = $("results");
-  const apiKeyInput = $("apiKey");
 
   // -------------------- Theme (light / auto / dark) --------------------
   const themeButtons = Array.from(document.querySelectorAll(".theme-seg button[data-theme-set]"));
@@ -50,19 +50,27 @@
     });
   }
 
-  // -------------------- API key state indicator --------------------
-  function refreshKeyState() {
-    const dot = $("keyState");
-    if (apiKeyInput.value.trim().length > 8) dot.classList.add("on");
-    else dot.classList.remove("on");
+  // -------------------- Server runtime configuration --------------------
+  localStorage.removeItem("autobot_openai_key");
+  async function loadRuntimeConfig() {
+    try {
+      const res = await fetch("/api/config", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Config check failed (${res.status})`);
+      const config = await res.json();
+      state.openaiConfigured = Boolean(config.openai_configured);
+      $("keyState").classList.toggle("on", state.openaiConfigured);
+      $("keyStatus").textContent = state.openaiConfigured
+        ? "OpenAI server key configured"
+        : "OpenAI server key missing";
+      $("openaiModel").textContent = config.openai_model || "gpt-5.6-sol";
+      $("useOpenai").disabled = !state.openaiConfigured;
+      $("narrateBtn").disabled = !state.openaiConfigured;
+    } catch (error) {
+      $("keyStatus").textContent = "OpenAI status unavailable";
+      $("useOpenai").disabled = true;
+      $("narrateBtn").disabled = true;
+    }
   }
-  apiKeyInput.value = localStorage.getItem("autobot_openai_key") || "";
-  refreshKeyState();
-  apiKeyInput.addEventListener("input", refreshKeyState);
-  apiKeyInput.addEventListener("change", () => {
-    localStorage.setItem("autobot_openai_key", apiKeyInput.value.trim());
-    refreshKeyState();
-  });
 
   // -------------------- Banner --------------------
   function showBanner(kind, message, detail = null) {
@@ -529,7 +537,6 @@
     state.files.forEach((f) => fd.append("files", f));
     fd.append("push_sheet", "false");
     fd.append("use_openai", $("useOpenai").checked ? "true" : "false");
-    if (apiKeyInput.value.trim()) fd.append("openai_api_key", apiKeyInput.value.trim());
 
     try {
       const res = await apiFetch(`/api/analyze/${requestProject}`, { method: "POST", body: fd });
@@ -612,6 +619,10 @@
 
   // -------------------- Narrative --------------------
   $("narrateBtn").onclick = async () => {
+    if (!state.openaiConfigured) {
+      showBanner("warn", "OPENAI_API_KEY is not configured on the server.");
+      return;
+    }
     const r = state.resultsByProject[state.projectId];
     if (!r) { showBanner("warn", "Run analyze first before generating a narrative."); return; }
     setBusy($("narrateBtn"), true, "Asking gpt-5.6-sol…");
@@ -623,7 +634,6 @@
         body: JSON.stringify({
           project_id: state.projectId,
           analysis: r,
-          api_key: apiKeyInput.value.trim() || null,
         }),
       });
       const data = await res.json();
@@ -635,6 +645,7 @@
       showBanner("error", String(e));
     } finally {
       setBusy($("narrateBtn"), false);
+      $("narrateBtn").disabled = !state.openaiConfigured;
     }
   };
 
@@ -891,6 +902,7 @@
   });
 
   // -------------------- Boot --------------------
+  loadRuntimeConfig();
   fetch("/api/projects", { cache: "no-store" })
     .then((r) => r.json())
     .then((data) => {

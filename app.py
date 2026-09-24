@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Multi-bot live log hub — FastAPI backend (127.0.0.1 only)."""
+"""Multi-bot live log hub — FastAPI backend."""
 from __future__ import annotations
 
 import traceback
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -12,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import HUB_ROOT, PROJECTS, UPLOADS, ensure_dirs, mark_sheet_push, project_state
-from services import coin_3in1, content, openai_narrate, smallcap_mtcb, superma
+from services import content, openai_narrate
 
 ensure_dirs()
 
@@ -24,7 +23,6 @@ app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 class NarrateBody(BaseModel):
     project_id: str
     analysis: dict
-    api_key: Optional[str] = None
 
 
 @app.get("/")
@@ -38,6 +36,15 @@ def api_projects():
     for pid, meta in PROJECTS.items():
         projects.append({**meta, "state": project_state(pid)})
     return {"projects": projects}
+
+
+@app.get("/api/config")
+def api_config():
+    """Expose non-secret runtime capabilities to the browser."""
+    return {
+        "openai_configured": openai_narrate.is_configured(),
+        "openai_model": openai_narrate.model_name(),
+    }
 
 
 @app.get("/api/projects/{project_id}/state")
@@ -93,7 +100,6 @@ async def api_analyze(
     files: list[UploadFile] = File(...),
     push_sheet: str = Form("false"),
     use_openai: str = Form("false"),
-    openai_api_key: Optional[str] = Form(None),
 ):
     if project_id not in PROJECTS:
         raise HTTPException(404, "unknown project")
@@ -115,10 +121,16 @@ async def api_analyze(
 
     try:
         if project_id == "coin":
+            from services import coin_3in1
+
             result = coin_3in1.run(saved[0], push=do_push)
         elif project_id == "smallcap":
+            from services import smallcap_mtcb
+
             result = smallcap_mtcb.run(saved[0], push_sheet=do_push)
         elif project_id == "superma":
+            from services import superma
+
             result = superma.run(saved)
         else:
             raise HTTPException(400, "unsupported project")
@@ -134,7 +146,7 @@ async def api_analyze(
 
     narrative = None
     if do_openai:
-        narrative = openai_narrate.narrate(project_id, result, api_key=openai_api_key)
+        narrative = openai_narrate.narrate(project_id, result)
 
     return {
         "ok": True,
@@ -150,7 +162,7 @@ async def api_analyze(
 def api_narrate(body: NarrateBody):
     if body.project_id not in PROJECTS:
         raise HTTPException(404, "unknown project")
-    return openai_narrate.narrate(body.project_id, body.analysis, api_key=body.api_key)
+    return openai_narrate.narrate(body.project_id, body.analysis)
 
 
 @app.post("/api/push/{project_id}")
@@ -160,6 +172,8 @@ def api_push(project_id: str):
         raise HTTPException(404, "unknown project")
     try:
         if project_id == "coin":
+            from services import coin_3in1
+
             result = coin_3in1.push_sheet()
             ts = mark_sheet_push(project_id)
             return {**result, "pushed_at": ts}

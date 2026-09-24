@@ -7,14 +7,22 @@ from datetime import datetime
 from pathlib import Path
 
 HUB_ROOT = Path(__file__).resolve().parent
-UPLOADS = HUB_ROOT / "uploads"
-OUTPUTS = HUB_ROOT / "outputs"
-CACHE = HUB_ROOT / "cache"
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+RUNTIME_ROOT = Path("/tmp/log-hub") if IS_VERCEL else HUB_ROOT
+UPLOADS = RUNTIME_ROOT / "uploads"
+OUTPUTS = RUNTIME_ROOT / "outputs"
+CACHE = RUNTIME_ROOT / "cache"
 
-AUTOBOT = Path(r"C:\Users\var_autobot")
-COIN_ROOT = AUTOBOT / "Coin-1계좌3전략"
-SMALLCAP_ROOT = AUTOBOT / "소형주-MTCB"
-SUPERMA_ROOT = AUTOBOT / "슈퍼이동평균V2-1"
+AUTOBOT = Path(os.environ.get("AUTOBOT_ROOT", r"C:\Users\var_autobot"))
+if IS_VERCEL:
+    PROJECT_RUNTIME = RUNTIME_ROOT / "projects"
+    COIN_ROOT = Path(os.environ.get("COIN_ROOT", PROJECT_RUNTIME / "coin"))
+    SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", PROJECT_RUNTIME / "smallcap"))
+    SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", PROJECT_RUNTIME / "superma"))
+else:
+    COIN_ROOT = Path(os.environ.get("COIN_ROOT", AUTOBOT / "Coin-1계좌3전략"))
+    SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", AUTOBOT / "소형주-MTCB"))
+    SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", AUTOBOT / "슈퍼이동평균V2-1"))
 
 SA_CANDIDATES = [
     AUTOBOT / "autobot-496513-3ce948f2711e.json",
@@ -23,7 +31,6 @@ SA_CANDIDATES = [
 ]
 
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-sol")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 PROJECTS = {
     "coin": {
@@ -120,6 +127,9 @@ PROJECTS = {
 def ensure_dirs() -> None:
     for p in (UPLOADS, OUTPUTS, CACHE):
         p.mkdir(parents=True, exist_ok=True)
+    if IS_VERCEL:
+        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT):
+            p.mkdir(parents=True, exist_ok=True)
     for pid in PROJECTS:
         (OUTPUTS / pid).mkdir(parents=True, exist_ok=True)
         (UPLOADS / pid).mkdir(parents=True, exist_ok=True)
