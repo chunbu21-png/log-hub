@@ -7,13 +7,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from config import COIN_ROOT, OUTPUTS
-
-_DATA = COIN_ROOT / "data"
-if str(_DATA) not in sys.path:
-    sys.path.insert(0, str(_DATA))
-
-from push_live_to_3in1_sheet import (  # noqa: E402
+from config import COIN_ROOT, IS_VERCEL, OUTPUTS
+from services.coin_parser import (
     SHEET_KEY,
     apply_cashflow_adjust,
     parse_live_rows,
@@ -156,6 +151,15 @@ def save_local(result: dict, log_path: Path) -> Path:
 
 def push_sheet() -> dict:
     """Run the existing publisher against project run.log."""
+    if IS_VERCEL:
+        raise RuntimeError(
+            "Coin Google Sheet push is not available on Vercel yet; "
+            "the original publisher and Google service-account credentials are local-only."
+        )
+
+    data_dir = COIN_ROOT / "data"
+    if str(data_dir) not in sys.path:
+        sys.path.insert(0, str(data_dir))
     import push_live_ui_to_3in1_sheet as ui
 
     ui.main()
