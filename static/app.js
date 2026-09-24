@@ -192,7 +192,7 @@
     const parts = [];
     if (analyzed) parts.push(`Last analyzed · ${relativeTime(analyzed)}`);
     else parts.push("Not analyzed yet");
-    if (p.sheet_url) {
+    if (p.sheet_push_available) {
       parts.push(pushed ? `Sheet updated · ${relativeTime(pushed)}` : "Sheet never updated from here");
     }
     $("projMeta").innerHTML = parts.map((x) => escapeHtml(x)).join("<br/>");
@@ -232,8 +232,8 @@
       projectSheet.classList.remove("disabled");
       projectSheet.removeAttribute("aria-disabled");
       projectSheet.innerHTML = '<span class="btn-icon">↗</span> Open Sheet';
-      $("repushBtn").hidden = false;
-      $("analyzePushBtn").hidden = false;
+      $("repushBtn").hidden = !p.sheet_push_available;
+      $("analyzePushBtn").hidden = !p.sheet_push_available;
     } else {
       projectSheet.removeAttribute("href");
       projectSheet.classList.add("disabled");
@@ -261,7 +261,7 @@
     $("summaryCards").innerHTML = "";
     $("analysisBody").innerHTML = "";
     $("analysisMeta").textContent = "";
-    $("narrativeBody").textContent = "— (paste an API key and click Generate)";
+    $("narrativeBody").textContent = "— (configure OPENAI_API_KEY and click Generate)";
     $("narrativeMeta").textContent = "";
     $("chartPanel").hidden = true;
   }
@@ -275,7 +275,7 @@
     state.files = arr;
     fileList.textContent = arr.map((f) => `${f.name} · ${formatBytes(f.size)}`).join(" · ");
     $("analyzeBtn").disabled = arr.length === 0;
-    $("analyzePushBtn").disabled = arr.length === 0 || !p.sheet_url;
+    $("analyzePushBtn").disabled = arr.length === 0 || !p.sheet_push_available;
   }
   dropZone.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", () => onFiles(fileInput.files));
@@ -573,7 +573,7 @@
         setBusy($("analyzeBtn"), false);
         setBusy($("analyzePushBtn"), false);
         $("analyzeBtn").disabled = state.files.length === 0;
-        $("analyzePushBtn").disabled = state.files.length === 0 || !p.sheet_url;
+        $("analyzePushBtn").disabled = state.files.length === 0 || !p.sheet_push_available;
       }
       refreshProjectState(requestProject);
     }
@@ -605,7 +605,7 @@
   $("repushBtn").onclick = async () => {
     if (!state.projectId) return;
     const p = currentProject();
-    if (!p || !p.sheet_url) return;
+    if (!p || !p.sheet_push_available) return;
     if (!confirm(`Rewrite the Google Sheet tab "${p.sheet_tab}" with the current local files?\n\nThis clears and re-writes the tab.`)) {
       return;
     }

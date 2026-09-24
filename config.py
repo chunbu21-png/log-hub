@@ -44,6 +44,7 @@ PROJECTS = {
         "default_log": str(COIN_ROOT / "run.log"),
         "sheet_url": "https://docs.google.com/spreadsheets/d/1hdwoh-Tc5LDVOsOcaJnNx00vKkqNOiU3E_ikW45yKiQ/edit#gid=1193052549",
         "sheet_tab": "3in1",
+        "sheet_push_available": not IS_VERCEL,
         "content_paths": [
             {"id": "run.log", "label": "run.log", "path": str(COIN_ROOT / "run.log")},
             {
@@ -64,6 +65,7 @@ PROJECTS = {
         "default_log": str(SMALLCAP_ROOT / "Canonical_V19.log"),
         "sheet_url": "https://docs.google.com/spreadsheets/d/1O4q7Vt2-W62Kp8xJ4SvRFucFhgDvg44muJ-3mgrOLIE/edit#gid=369475009",
         "sheet_tab": "리포트",
+        "sheet_push_available": not IS_VERCEL,
         "content_paths": [
             {
                 "id": "Canonical_V19.log",
@@ -103,6 +105,7 @@ PROJECTS = {
         "default_log": str(SUPERMA_ROOT / "strategy1.log"),
         "sheet_url": None,
         "sheet_tab": None,
+        "sheet_push_available": False,
         "content_paths": [
             {
                 "id": "strategy1.log",

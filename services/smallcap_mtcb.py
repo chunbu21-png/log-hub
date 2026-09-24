@@ -6,14 +6,10 @@ import json
 import sys
 from pathlib import Path
 
-from config import OUTPUTS, SMALLCAP_ROOT
+from config import IS_VERCEL, OUTPUTS, SMALLCAP_ROOT
+from services.smallcap_report import build_report, parse_log, write_outputs
 
-_SCRIPTS = SMALLCAP_ROOT / "scripts"
-if str(_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS))
-
-from report_live_from_log import build_report, parse_log, write_outputs  # noqa: E402
-from push_live_report_to_sheet import SHEET_KEY, push  # noqa: E402
+SHEET_KEY = "1O4q7Vt2-W62Kp8xJ4SvRFucFhgDvg44muJ-3mgrOLIE"
 
 
 def run(log_path: Path, push_sheet: bool = False) -> dict:
@@ -54,6 +50,16 @@ def run(log_path: Path, push_sheet: bool = False) -> dict:
 
     sheet_info: dict = {"ok": False, "skipped": True}
     if push_sheet:
+        if IS_VERCEL:
+            raise RuntimeError(
+                "Canonical Google Sheet push is not available on Vercel yet; "
+                "its service-account credentials are local-only."
+            )
+        scripts = SMALLCAP_ROOT / "scripts"
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        from push_live_report_to_sheet import push
+
         push(out_dir)
         sheet_info = {
             "ok": True,

@@ -10,7 +10,15 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from config import HUB_ROOT, PROJECTS, UPLOADS, ensure_dirs, mark_sheet_push, project_state
+from config import (
+    HUB_ROOT,
+    IS_VERCEL,
+    PROJECTS,
+    UPLOADS,
+    ensure_dirs,
+    mark_sheet_push,
+    project_state,
+)
 from services import content, openai_narrate
 
 ensure_dirs()
@@ -170,6 +178,12 @@ def api_push(project_id: str):
     """Re-push last local artifacts to Google Sheet without re-upload."""
     if project_id not in PROJECTS:
         raise HTTPException(404, "unknown project")
+    if IS_VERCEL:
+        raise HTTPException(
+            501,
+            "Google Sheet push is disabled on Vercel until service-account "
+            "credentials are configured for the hosted runtime.",
+        )
     try:
         if project_id == "coin":
             from services import coin_3in1
