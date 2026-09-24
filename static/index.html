@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Autobot Log Hub</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233d9b6a'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='sans-serif' font-size='16' font-weight='700' fill='%230f1412'%3EA%3C/text%3E%3C/svg%3E" />
+  <script>
+    // Set data-theme before CSS loads to avoid flash
+    (function () {
+      try {
+        var t = localStorage.getItem("autobot_theme") || "auto";
+        var eff = t;
+        if (t === "auto") {
+          eff = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.setAttribute("data-theme", eff);
+        document.documentElement.setAttribute("data-theme-choice", t);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/styles.css?v=11" />
+</head>
+<body>
+  <aside class="sidebar" aria-label="Projects">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div>
+        <div class="brand-title">Autobot Hub</div>
+        <div class="brand-sub">Live log analyzer</div>
+      </div>
+    </div>
+    <nav id="projectNav" class="nav" aria-label="Project switcher"></nav>
+    <div class="sidebar-foot">
+      <label class="key-label" for="apiKey">
+        <span class="key-dot" id="keyState" aria-hidden="true"></span>
+        OpenAI API key
+      </label>
+      <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+      <div class="muted tiny">Model: <code>gpt-5.6-sol</code> · stored only in this browser</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div class="top-heading">
+        <h1 id="projTitle">Select a project</h1>
+        <p id="projDesc" class="muted"></p>
+      </div>
+      <div class="top-right">
+        <div class="theme-seg" role="group" aria-label="Theme">
+          <button type="button" data-theme-set="light" aria-label="Light theme" title="Light">☀</button>
+          <button type="button" data-theme-set="auto" aria-label="Follow system" title="Auto (system)">◐</button>
+          <button type="button" data-theme-set="dark" aria-label="Dark theme" title="Dark">☾</button>
+        </div>
+        <div class="top-meta muted tiny" id="projMeta"></div>
+      </div>
+    </header>
+
+    <section id="banner" class="banner" hidden role="status" aria-live="polite">
+      <div class="banner-body">
+        <span class="banner-icon" id="bannerIcon">i</span>
+        <div class="banner-content">
+          <div class="banner-message" id="bannerMessage"></div>
+          <details class="banner-details" id="bannerDetailsWrap" hidden>
+            <summary>Show details</summary>
+            <pre id="bannerDetails"></pre>
+          </details>
+        </div>
+      </div>
+      <button class="banner-close" id="bannerClose" aria-label="Dismiss">×</button>
+    </section>
+
+    <section class="panel drop-panel" id="dropZone">
+      <input type="file" id="fileInput" multiple hidden />
+      <div class="drop-inner">
+        <div class="drop-icon" aria-hidden="true">↓</div>
+        <div class="drop-title">Drop log file(s) here</div>
+        <div class="drop-sub muted" id="dropHint">or click to browse</div>
+        <div id="fileList" class="file-list"></div>
+        <div id="dropExtras" class="drop-extras muted tiny"></div>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Project actions">
+      <div class="controls-group" role="group" aria-label="Analyze actions">
+        <span class="controls-label">Analyze</span>
+        <button id="analyzeBtn" class="btn primary" disabled>
+          <span class="btn-label">Analyze</span>
+          <span class="btn-spin" aria-hidden="true"></span>
+        </button>
+        <button id="analyzePushBtn" class="btn sheet-action" disabled>
+          <span class="btn-icon">↗</span>
+          <span class="btn-label">Analyze + update Sheet</span>
+          <span class="btn-spin" aria-hidden="true"></span>
+        </button>
+        <button id="repushBtn" class="btn sheet-only">
+          <span class="btn-icon">↻</span>
+          <span class="btn-label">Update Sheet only</span>
+          <span class="btn-spin" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="controls-group" role="group" aria-label="View actions">
+        <span class="controls-label">View</span>
+        <button id="logsBtn" class="btn"><span class="btn-icon">☷</span> Log files</button>
+        <button id="viewBtn" class="btn"><span class="btn-icon">◱</span> Current content</button>
+        <a id="projectSheetBtn" class="btn sheet-open" href="#" target="_blank" rel="noopener">
+          <span class="btn-icon">↗</span> Open Sheet
+        </a>
+      </div>
+    </section>
+
+    <section id="logsPanel" class="panel logs-panel" hidden>
+      <div class="content-head">
+        <h2 id="logsTitle">Log files</h2>
+        <button id="logsRefresh" class="btn ghost">Rescan folder</button>
+        <button id="logsClose" class="btn ghost">Close</button>
+      </div>
+      <div id="logsBody" class="logs-body"></div>
+    </section>
+
+    <section id="contentPanel" class="panel content-panel" hidden>
+      <div class="content-head">
+        <h2 id="contentTitle">Current content</h2>
+        <button id="contentBackBtn" class="btn ghost" hidden>← File list</button>
+        <select id="contentSelect" aria-label="Pick a file"></select>
+        <input id="contentSearch" class="content-search" placeholder="Find in file (Enter)" spellcheck="false" />
+        <span id="contentSearchMeta" class="muted tiny"></span>
+        <button id="contentRefresh" class="btn ghost">Re-read from disk</button>
+      </div>
+      <pre id="contentBody" class="content-body"></pre>
+    </section>
+
+    <section id="results" class="results" hidden>
+      <div class="grid" id="summaryCards"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Analysis</h2>
+            <div id="analysisMeta" class="muted tiny"></div>
+          </div>
+          <div id="analysisBody"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <h2>
+              Narrative
+              <span class="muted tiny">gpt-5.6-sol</span>
+            </h2>
+            <label class="check inline" title="Automatically call OpenAI on every analyze">
+              <input type="checkbox" id="useOpenai" /> Auto on analyze
+            </label>
+          </div>
+          <pre id="narrativeBody" class="narrative">— (paste an API key and click Generate)</pre>
+          <div class="narrative-meta muted tiny" id="narrativeMeta"></div>
+          <button id="narrateBtn" class="btn ghost">
+            <span class="btn-label">Generate narrative</span>
+            <span class="btn-spin" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+      <div class="panel" id="chartPanel" hidden>
+        <div class="panel-head">
+          <h2>Return / Drawdown</h2>
+          <div class="chart-legend muted tiny">
+            <span class="legend-dot legend-ret"></span> Return %
+            <span class="legend-dot legend-dd"></span> Drawdown %
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartCanvas" height="160"></canvas>
+          <div id="chartTip" class="chart-tip" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=11"></script>
+</body>
+</html>

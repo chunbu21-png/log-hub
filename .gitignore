@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+
+# Runtime data and uploaded trading logs
+uploads/
+outputs/
+
+# Local editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
