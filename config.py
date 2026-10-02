@@ -134,7 +134,7 @@ PROJECTS = {
     "bollinger": {
         "id": "bollinger",
         "name": "볼린저 레버리지",
-        "short": "Bollinger Lev",
+        "short": "Bollinger Leverage",
         "description": "Bollinger_Lev.log → 수익률/MDD/CAGR + Sheet「Report」",
         "root_path": str(BOLLINGER_ROOT),
         "accept": ".log,.txt",
