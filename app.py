@@ -164,6 +164,10 @@ async def api_analyze(
             from services import strategyd
 
             result = strategyd.run(saved[0], push=do_push)
+        elif project_id == "assetalloc":
+            from services import assetalloc
+
+            result = assetalloc.run(saved[0], push=do_push)
         else:
             raise HTTPException(400, "unsupported project")
     except Exception as e:  # noqa: BLE001
@@ -243,6 +247,12 @@ def api_push(project_id: str):
             from services import strategyd
 
             result = strategyd.push_sheet()
+            ts = mark_sheet_push(project_id)
+            return {**result, "pushed_at": ts}
+        if project_id == "assetalloc":
+            from services import assetalloc
+
+            result = assetalloc.push_sheet()
             ts = mark_sheet_push(project_id)
             return {**result, "pushed_at": ts}
         return {"ok": False, "error": "this project has no Sheet push"}

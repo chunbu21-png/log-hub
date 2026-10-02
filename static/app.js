@@ -472,6 +472,57 @@
     drawSeries(r.series || []);
   }
 
+  function renderAssetAlloc(r) {
+    const s = r.summary || {};
+    if (s.mode === "calendar") {
+      $("summaryCards").innerHTML = [
+        card("모드", "달력", "", "월말 리밸런싱 대상일 체크 로그만 있습니다."),
+        card("마지막 대상일", s.last_ok_day || "—", "", "last weekday of month."),
+        card("skip", s.skip_count || 0, "", "대상일이 아니라 스킵된 횟수."),
+      ].join("");
+      $("analysisBody").innerHTML = `<div>${escapeHtml(s.one_liner || "")}</div>
+        <p class="muted tiny">KIS_AssetAll_Bot.log 를 올리면 총자산·리밸 세션을 분석합니다.</p>`;
+      $("analysisMeta").textContent = "calendar log";
+      $("chartPanel").hidden = true;
+      return;
+    }
+    const sleeves = s.sleeves || {};
+    $("summaryCards").innerHTML = [
+      card("총자산", fmtNum(s.total_money), "", "KIS Remain+Stock TotalMoney."),
+      card("할당금액", fmtNum(s.allocation), "", "3전략 분할 포트폴리오 할당."),
+      card("주식평가", fmtNum(s.stock_money), s.stock_revenue >= 0 ? "pos" : "neg", "보유 ETF 평가합."),
+      card("평가손익", fmtNum(s.stock_revenue), s.stock_revenue >= 0 ? "pos" : "neg", "보유 평가손익."),
+      card("보유", s.n_holdings || 0, "", "내 보유 주식 종목 수."),
+      card("리밸/주문", `${s.n_rebalance || 0}/${s.n_orders || 0}`, s.healthy ? "pos" : "neg", "비영 리밸 종목 / 실제 OrderNum."),
+    ].join("");
+    const holdRows = (r.holdings || []).map((h) =>
+      `<tr><th>${escapeHtml(h.name)} (${escapeHtml(h.code)})</th><td>${fmtNum(h.qty)} · ${fmtNum(h.mkt)} · ${escapeHtml(String(h.ret_pct))}%</td></tr>`
+    ).join("");
+    const rebalRows = (r.rebalance || []).map((row) => {
+      const qty = Number(row.qty || 0);
+      const cls = qty ? "log-rebalance-nz" : "";
+      return `<tr><th>${escapeHtml(row.name)} (${escapeHtml(row.code)})</th><td class="${cls}">${qty >= 0 ? "+" : ""}${fmtNum(qty)} · ${escapeHtml(String(row.now_pct ?? ""))}→${escapeHtml(String(row.target_pct ?? ""))}%</td></tr>`;
+    }).join("");
+    const comb = Object.entries(s.combined || {}).map(([k, v]) => `${k} ${(Number(v) * 100).toFixed(1)}%`).join(" · ");
+    $("analysisBody").innerHTML = `
+      <table class="kv">
+        <tr><th>세션</th><td>${escapeHtml(s.stamp || "")}${s.sim_only ? " · 시뮬레이션" : ""}${s.rebalance_done ? " · 리밸런싱 끝" : ""}</td></tr>
+        <tr><th>예수금</th><td>${fmtNum(s.remain_money)}</td></tr>
+        <tr><th>슬리브</th><td>jab ${(sleeves.jab * 100).toFixed(0)}% / mo ${(sleeves.mo * 100).toFixed(0)}% / d2 ${(sleeves.d2 * 100).toFixed(0)}%</td></tr>
+        <tr><th>현금비중</th><td>${s.cash_weight == null ? "" : (Number(s.cash_weight) * 100).toFixed(1) + "%"}</td></tr>
+        <tr><th>결합비중</th><td>${escapeHtml(comb || "없음")}</td></tr>
+        <tr><th>저장 위치</th><td><code>${escapeHtml(r.saved_to || "")}</code></td></tr>
+      </table>
+      <div class="section-title">보유 (${(r.holdings || []).length})</div>
+      <table class="kv">${holdRows || "<tr><td>없음</td></tr>"}</table>
+      <div class="section-title">리밸런싱 (${(r.rebalance || []).length})</div>
+      <table class="kv">${rebalRows || "<tr><td>없음</td></tr>"}</table>
+      <div class="section-title">한줄 결론</div>
+      <div>${escapeHtml(s.one_liner || "")}</div>`;
+    $("analysisMeta").textContent = `${s.n_sessions || 0} session(s) · ${(r.series || []).length} chart points`;
+    drawSeries(r.series || []);
+  }
+
   function renderNarrative(payload, r) {
     const nar = payload.narrative || state.narrativeByProject[payload.project_id];
     const meta = $("narrativeMeta");
@@ -505,6 +556,7 @@
     else if (payload.project_id === "smallcap") renderSmallcap(r);
     else if (payload.project_id === "bollinger") renderBollinger(r);
     else if (payload.project_id === "strategyd") renderStrategyD(r);
+    else if (payload.project_id === "assetalloc") renderAssetAlloc(r);
     else renderSuperma(r);
     renderNarrative(payload, r);
     dropZone.classList.add("compact");

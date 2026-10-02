@@ -82,6 +82,9 @@ def narrate(project_id: str, analysis: dict[str, Any]) -> dict:
                 "n_buys",
                 "n_sells",
                 "positions",
+                "holdings",
+                "rebalance",
+                "sessions",
             )
         }
 

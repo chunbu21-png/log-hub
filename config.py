@@ -21,12 +21,14 @@ if IS_VERCEL:
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", PROJECT_RUNTIME / "superma"))
     BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", PROJECT_RUNTIME / "bollinger"))
     STRATEGYD_ROOT = Path(os.environ.get("STRATEGYD_ROOT", PROJECT_RUNTIME / "strategyd"))
+    ASSETALLOC_ROOT = Path(os.environ.get("ASSETALLOC_ROOT", PROJECT_RUNTIME / "assetalloc"))
 else:
     COIN_ROOT = Path(os.environ.get("COIN_ROOT", AUTOBOT / "Coin-1계좌3전략"))
     SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", AUTOBOT / "소형주-MTCB"))
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", AUTOBOT / "슈퍼이동평균V2-1"))
     BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", AUTOBOT / "Bollinger Leverage"))
     STRATEGYD_ROOT = Path(os.environ.get("STRATEGYD_ROOT", AUTOBOT / "Coin-MTCB"))
+    ASSETALLOC_ROOT = Path(os.environ.get("ASSETALLOC_ROOT", AUTOBOT / "Snow ball" / "asset"))
 
 SA_CANDIDATES = [
     AUTOBOT / "autobot-496513-3ce948f2711e.json",
@@ -183,6 +185,36 @@ PROJECTS = {
             },
         ],
     },
+    "assetalloc": {
+        "id": "assetalloc",
+        "name": "자산배분(3전략분할)",
+        "short": "AssetAllocation",
+        "description": "KIS_AssetAll_Bot.log → 총자산/리밸 + Sheet「매일현황」",
+        "root_path": str(ASSETALLOC_ROOT),
+        "accept": ".log,.txt",
+        "multi_file": False,
+        "default_log": str(ASSETALLOC_ROOT / "KIS_AssetAll_Bot.log"),
+        "sheet_url": "https://docs.google.com/spreadsheets/d/13VoO1XvjpZ9bP6vQRl7o1FjBY19CYUIfnFueirL4u8k/edit#gid=2003988218",
+        "sheet_tab": "매일현황",
+        "sheet_push_available": not IS_VERCEL,
+        "content_paths": [
+            {
+                "id": "KIS_AssetAll_Bot.log",
+                "label": "KIS_AssetAll_Bot.log",
+                "path": str(ASSETALLOC_ROOT / "KIS_AssetAll_Bot.log"),
+            },
+            {
+                "id": "KIS_AssetAll.log",
+                "label": "KIS_AssetAll.log (달력)",
+                "path": str(ASSETALLOC_ROOT / "KIS_AssetAll.log"),
+            },
+            {
+                "id": "last_summary",
+                "label": "마지막 분석 JSON",
+                "path": str(OUTPUTS / "assetalloc" / "summary.json"),
+            },
+        ],
+    },
 }
 
 
@@ -190,7 +222,14 @@ def ensure_dirs() -> None:
     for p in (UPLOADS, OUTPUTS, CACHE):
         p.mkdir(parents=True, exist_ok=True)
     if IS_VERCEL:
-        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT, BOLLINGER_ROOT, STRATEGYD_ROOT):
+        for p in (
+            COIN_ROOT,
+            SMALLCAP_ROOT,
+            SUPERMA_ROOT,
+            BOLLINGER_ROOT,
+            STRATEGYD_ROOT,
+            ASSETALLOC_ROOT,
+        ):
             p.mkdir(parents=True, exist_ok=True)
     for pid in PROJECTS:
         (OUTPUTS / pid).mkdir(parents=True, exist_ok=True)
