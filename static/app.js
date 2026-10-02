@@ -435,6 +435,43 @@
     drawSeries(r.series || []);
   }
 
+  function renderStrategyD(r) {
+    const s = r.summary || {};
+    $("summaryCards").innerHTML = [
+      card("TWR%", s.twr_pct, s.twr_pct >= 0 ? "pos" : "neg", "Time-weighted return after deposit/withdrawal breaks."),
+      card("MDD%", s.mdd_pct, "neg", TIPS.mdd),
+      card("PnL USDT", s.pnl_usdt, s.pnl_usdt >= 0 ? "pos" : "neg", "Estimated equity minus invested capital."),
+      card("XIRR%", s.xirr_pct == null ? "n/a" : s.xirr_pct, "", "Annualized IRR including cash flows."),
+      card("추정자산", fmtNum(s.equity_est), "", "Latest estimated account equity."),
+      card("포지션", s.n_pos, "", "Open Strategy D names at the latest tick."),
+    ].join("");
+    const events = s.cash_events || [];
+    const adj = events.length
+      ? `<div class="section-title">Cash-flow adjustments</div>
+         <div class="adj-list">${events.map((e) => `
+           <div class="adj-item ${escapeHtml(e.kind)}">
+             <span><span class="adj-tag">${escapeHtml(e.kind)}</span> · ${escapeHtml(e.utc)}${e.n_pos ? " · " + escapeHtml(e.n_pos) : ""}</span>
+             <span class="hl">${escapeHtml(String(e.amount))}</span>
+           </div>`).join("")}</div>`
+      : `<div class="section-title">Cash-flow adjustments</div><div class="muted tiny">없음</div>`;
+    const notes = (r.trade_notes || []).map((n) => `<div>• ${escapeHtml(n)}</div>`).join("");
+    $("analysisBody").innerHTML = `
+      <table class="kv">
+        <tr><th>구간 (UTC)</th><td>${escapeHtml(s.range_utc || "")}</td></tr>
+        <tr><th>원금</th><td>${fmtNum(s.capital_in)}</td></tr>
+        <tr><th>원금대비 ROI</th><td>${escapeHtml(String(s.roi_pct ?? ""))}%</td></tr>
+        <tr><th>MDD 시점</th><td>${escapeHtml(s.mdd_at || "")} · ${fmtNum(s.mdd_eq)}</td></tr>
+        <tr><th>포지션</th><td>${escapeHtml((s.positions || []).join(", ") || "없음")}</td></tr>
+        <tr><th>USDT free</th><td>${fmtNum(s.free)}</td></tr>
+        <tr><th>저장 위치</th><td><code>${escapeHtml(r.saved_to || "")}</code></td></tr>
+      </table>
+      ${adj}
+      <div class="section-title">최근 이벤트 (${(r.trade_notes || []).length})</div>
+      <div class="muted">${notes || "없음"}</div>`;
+    $("analysisMeta").textContent = `${s.n_ticks || 0} ticks · ${(r.series || []).length} chart points`;
+    drawSeries(r.series || []);
+  }
+
   function renderNarrative(payload, r) {
     const nar = payload.narrative || state.narrativeByProject[payload.project_id];
     const meta = $("narrativeMeta");
@@ -467,6 +504,7 @@
     if (payload.project_id === "coin") renderCoin(r);
     else if (payload.project_id === "smallcap") renderSmallcap(r);
     else if (payload.project_id === "bollinger") renderBollinger(r);
+    else if (payload.project_id === "strategyd") renderStrategyD(r);
     else renderSuperma(r);
     renderNarrative(payload, r);
     dropZone.classList.add("compact");

@@ -20,11 +20,13 @@ if IS_VERCEL:
     SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", PROJECT_RUNTIME / "smallcap"))
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", PROJECT_RUNTIME / "superma"))
     BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", PROJECT_RUNTIME / "bollinger"))
+    STRATEGYD_ROOT = Path(os.environ.get("STRATEGYD_ROOT", PROJECT_RUNTIME / "strategyd"))
 else:
     COIN_ROOT = Path(os.environ.get("COIN_ROOT", AUTOBOT / "Coin-1계좌3전략"))
     SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", AUTOBOT / "소형주-MTCB"))
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", AUTOBOT / "슈퍼이동평균V2-1"))
     BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", AUTOBOT / "Bollinger Leverage"))
+    STRATEGYD_ROOT = Path(os.environ.get("STRATEGYD_ROOT", AUTOBOT / "Coin-MTCB"))
 
 SA_CANDIDATES = [
     AUTOBOT / "autobot-496513-3ce948f2711e.json",
@@ -156,6 +158,31 @@ PROJECTS = {
             },
         ],
     },
+    "strategyd": {
+        "id": "strategyd",
+        "name": "StrategyD",
+        "short": "StrategyD",
+        "description": "okx_bot.log → TWR/MDD/XIRR + Sheet「StrategyD」",
+        "root_path": str(STRATEGYD_ROOT),
+        "accept": ".log,.txt",
+        "multi_file": False,
+        "default_log": str(STRATEGYD_ROOT / "okx_bot.log"),
+        "sheet_url": "https://docs.google.com/spreadsheets/d/1hdwoh-Tc5LDVOsOcaJnNx00vKkqNOiU3E_ikW45yKiQ/edit#gid=78563573",
+        "sheet_tab": "StrategyD",
+        "sheet_push_available": not IS_VERCEL,
+        "content_paths": [
+            {
+                "id": "okx_bot.log",
+                "label": "okx_bot.log",
+                "path": str(STRATEGYD_ROOT / "okx_bot.log"),
+            },
+            {
+                "id": "last_summary",
+                "label": "마지막 분석 JSON",
+                "path": str(OUTPUTS / "strategyd" / "summary.json"),
+            },
+        ],
+    },
 }
 
 
@@ -163,7 +190,7 @@ def ensure_dirs() -> None:
     for p in (UPLOADS, OUTPUTS, CACHE):
         p.mkdir(parents=True, exist_ok=True)
     if IS_VERCEL:
-        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT, BOLLINGER_ROOT):
+        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT, BOLLINGER_ROOT, STRATEGYD_ROOT):
             p.mkdir(parents=True, exist_ok=True)
     for pid in PROJECTS:
         (OUTPUTS / pid).mkdir(parents=True, exist_ok=True)

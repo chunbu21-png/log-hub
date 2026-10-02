@@ -96,7 +96,7 @@ def api_read_content(project_id: str, content_id: str):
         raise HTTPException(404, "unknown content id") from None
 
 
-MAX_UPLOAD_BYTES = 80 * 1024 * 1024
+MAX_UPLOAD_BYTES = 120 * 1024 * 1024
 
 
 def _as_bool(v) -> bool:
@@ -160,6 +160,10 @@ async def api_analyze(
             from services import bollinger
 
             result = bollinger.run(saved[0], push=do_push)
+        elif project_id == "strategyd":
+            from services import strategyd
+
+            result = strategyd.run(saved[0], push=do_push)
         else:
             raise HTTPException(400, "unsupported project")
     except Exception as e:  # noqa: BLE001
@@ -233,6 +237,12 @@ def api_push(project_id: str):
             from services import bollinger
 
             result = bollinger.push_sheet()
+            ts = mark_sheet_push(project_id)
+            return {**result, "pushed_at": ts}
+        if project_id == "strategyd":
+            from services import strategyd
+
+            result = strategyd.push_sheet()
             ts = mark_sheet_push(project_id)
             return {**result, "pushed_at": ts}
         return {"ok": False, "error": "this project has no Sheet push"}
