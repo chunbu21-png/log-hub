@@ -108,7 +108,9 @@ code {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .brand { display: flex; gap: 12px; align-items: center; padding: 4px 6px 12px; }
 .brand-mark {
@@ -125,7 +127,14 @@ code {
 .brand-title { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
 .brand-sub { color: var(--muted-soft); font-size: 12px; }
 
-.nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
 .nav button {
   text-align: left;
   background: transparent;
@@ -563,7 +572,8 @@ h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; letter-spacing: -0.005
 @media (max-width: 1200px) { .two-col { grid-template-columns: 1fr; } }
 @media (max-width: 980px) {
   body { grid-template-columns: 1fr; }
-  .sidebar { min-height: auto; }
+  .sidebar { height: auto; overflow: visible; }
+  .nav { overflow: visible; }
   .main { padding: 20px; }
 }
 
