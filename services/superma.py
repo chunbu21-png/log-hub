@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""SuperMA strategy1/strategy2 latest-session analyzer."""
+"""SuperMA KR V2-1/V2-2/V2-3 latest-session analyzer."""
 from __future__ import annotations
 
 import json
@@ -49,10 +49,12 @@ def _sessions(text: str) -> list[tuple[str, str, list[str]]]:
 
 
 def _detect_bot(text: str, filename: str = "") -> str:
+    if "슈퍼이동평균자산배분전략_KR3" in text or "strategy3" in filename.lower():
+        return "SuperMA KR V2-3"
     if "슈퍼이동평균자산배분전략_KR2" in text or "strategy2" in filename.lower():
-        return "Bot2 (KR2)"
+        return "SuperMA KR V2-2"
     if "슈퍼이동평균자산배분전략_KR" in text or "strategy1" in filename.lower():
-        return "Bot1 (KR)"
+        return "SuperMA KR V2-1"
     return "Unknown"
 
 
@@ -180,7 +182,9 @@ def run(log_paths: list[Path]) -> dict:
         bots.append(analyze_one(text, p.name))
         # Sync into project tree by name heuristic
         name = p.name.lower()
-        if "2" in name or "kr2" in name:
+        if "3" in name or "kr3" in name:
+            dest = SUPERMA_ROOT / "strategy3.log"
+        elif "2" in name or "kr2" in name:
             dest = SUPERMA_ROOT / "strategy2.log"
         else:
             dest = SUPERMA_ROOT / "strategy1.log"

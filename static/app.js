@@ -218,10 +218,10 @@
     fileInput.multiple = !!p.multi_file;
     fileInput.accept = p.accept || ".log,.txt";
     $("dropHint").textContent = p.multi_file
-      ? "Drop strategy1.log and/or strategy2.log"
+      ? "Drop strategy1.log, strategy2.log, and strategy3.log"
       : `Drop ${p.short} log · or click to browse`;
     $("dropExtras").textContent = p.multi_file
-      ? "Two files supported. Bot1/Bot2 are auto-detected from file name and content."
+      ? "Three files supported. SuperMA KR V2-1/V2-2/V2-3 are auto-detected."
       : "";
     dropZone.classList.remove("compact");
     renderTopMeta();

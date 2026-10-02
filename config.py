@@ -98,7 +98,7 @@ PROJECTS = {
         "id": "superma",
         "name": "슈퍼이동평균 V2-1",
         "short": "SuperMA KR",
-        "description": "strategy1/2.log → Bot1·Bot2 일일 요약",
+        "description": "strategy1/2/3.log → SuperMA KR V2-1·V2-2·V2-3 일일 요약",
         "root_path": str(SUPERMA_ROOT),
         "accept": ".log,.txt",
         "multi_file": True,
@@ -109,13 +109,18 @@ PROJECTS = {
         "content_paths": [
             {
                 "id": "strategy1.log",
-                "label": "strategy1.log",
+                "label": "V2-1 · strategy1.log",
                 "path": str(SUPERMA_ROOT / "strategy1.log"),
             },
             {
                 "id": "strategy2.log",
-                "label": "strategy2.log",
+                "label": "V2-2 · strategy2.log",
                 "path": str(SUPERMA_ROOT / "strategy2.log"),
+            },
+            {
+                "id": "strategy3.log",
+                "label": "V2-3 · strategy3.log",
+                "path": str(SUPERMA_ROOT / "strategy3.log"),
             },
             {
                 "id": "last_summary",

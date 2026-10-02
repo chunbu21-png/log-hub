@@ -7,6 +7,7 @@ venv/
 # Runtime data and uploaded trading logs
 uploads/
 outputs/
+archives/
 
 # Local editor and OS files
 .idea/
