@@ -140,6 +140,10 @@ async def api_analyze(
             from services import superma
 
             result = superma.run(saved)
+        elif project_id == "bollinger":
+            from services import bollinger
+
+            result = bollinger.run(saved[0], push=do_push)
         else:
             raise HTTPException(400, "unsupported project")
     except Exception as e:  # noqa: BLE001
@@ -209,6 +213,12 @@ def api_push(project_id: str):
                 "sheet_url": PROJECTS[project_id]["sheet_url"],
                 "pushed_at": ts,
             }
+        if project_id == "bollinger":
+            from services import bollinger
+
+            result = bollinger.push_sheet()
+            ts = mark_sheet_push(project_id)
+            return {**result, "pushed_at": ts}
         return {"ok": False, "error": "this project has no Sheet push"}
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, str(e)) from e

@@ -385,6 +385,42 @@
     $("chartPanel").hidden = true;
   }
 
+  function fmtNum(v) {
+    if (v == null || v === "") return "";
+    const n = Number(v);
+    if (!Number.isFinite(n)) return String(v);
+    return n.toLocaleString("ko-KR");
+  }
+
+  function renderBollinger(r) {
+    const s = r.summary || {};
+    $("summaryCards").innerHTML = [
+      card("수익률%", s.total_return_pct, s.total_return_pct >= 0 ? "pos" : "neg", TIPS.total_ret),
+      card("MDD%", s.mdd_pct, "neg", TIPS.mdd),
+      card("CAGR%", s.cagr_pct, s.cagr_pct >= 0 ? "pos" : "neg", "Annualized return over the live window."),
+      card("Sharpe", s.sharpe, "", "Daily-return Sharpe annualized at 252 days."),
+      card("최종자산", fmtNum(s.final_equity), "", "Last TotalMoney after capital-reset trim."),
+      card("매수/매도", `${r.n_buys || 0}/${r.n_sells || 0}`, "", TIPS.buys_sells),
+    ].join("");
+    const trades = (r.trades || []).slice(-15).map((t) =>
+      `<tr><th>${escapeHtml(t.date)} ${escapeHtml(t.side)}</th><td>${escapeHtml(t.code)} ${t.shares != null ? "x" + escapeHtml(String(t.shares)) : ""} @ ${fmtNum(t.price)} ${escapeHtml(t.reason || "")}</td></tr>`
+    ).join("");
+    $("analysisBody").innerHTML = `
+      <table class="kv">
+        <tr><th>구간</th><td>${escapeHtml(s.start_date || "")} ~ ${escapeHtml(s.end_date || "")} (${escapeHtml(String(s.trading_days || ""))}거래일)</td></tr>
+        <tr><th>초기→최종</th><td>${fmtNum(s.initial_equity)} → ${fmtNum(s.final_equity)}</td></tr>
+        <tr><th>MDD 발생일</th><td>${escapeHtml(s.mdd_date || "")}</td></tr>
+        <tr><th>보유 슬롯</th><td>${escapeHtml(String(s.latest_positions ?? ""))}/5</td></tr>
+        <tr><th>예약매수</th><td>${escapeHtml((r.pending_buys || []).join(", ") || "없음")}</td></tr>
+        <tr><th>자본 보정</th><td>${escapeHtml(s.capital_note || "로그 전체")}</td></tr>
+        <tr><th>저장 위치</th><td><code>${escapeHtml(r.saved_to || "")}</code></td></tr>
+      </table>
+      <div class="section-title">최근 체결 (${(r.trades || []).length})</div>
+      <table class="kv">${trades || "<tr><td>없음</td></tr>"}</table>`;
+    $("analysisMeta").textContent = `${(r.series || []).length} chart points · ${s.trading_days || 0} days`;
+    drawSeries(r.series || []);
+  }
+
   function renderNarrative(payload, r) {
     const nar = payload.narrative || state.narrativeByProject[payload.project_id];
     const meta = $("narrativeMeta");
@@ -416,6 +452,7 @@
     results.hidden = false;
     if (payload.project_id === "coin") renderCoin(r);
     else if (payload.project_id === "smallcap") renderSmallcap(r);
+    else if (payload.project_id === "bollinger") renderBollinger(r);
     else renderSuperma(r);
     renderNarrative(payload, r);
     dropZone.classList.add("compact");

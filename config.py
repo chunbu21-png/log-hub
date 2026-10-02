@@ -19,10 +19,12 @@ if IS_VERCEL:
     COIN_ROOT = Path(os.environ.get("COIN_ROOT", PROJECT_RUNTIME / "coin"))
     SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", PROJECT_RUNTIME / "smallcap"))
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", PROJECT_RUNTIME / "superma"))
+    BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", PROJECT_RUNTIME / "bollinger"))
 else:
     COIN_ROOT = Path(os.environ.get("COIN_ROOT", AUTOBOT / "Coin-1계좌3전략"))
     SMALLCAP_ROOT = Path(os.environ.get("SMALLCAP_ROOT", AUTOBOT / "소형주-MTCB"))
     SUPERMA_ROOT = Path(os.environ.get("SUPERMA_ROOT", AUTOBOT / "슈퍼이동평균V2-1"))
+    BOLLINGER_ROOT = Path(os.environ.get("BOLLINGER_ROOT", AUTOBOT / "Bollinger Leverage"))
 
 SA_CANDIDATES = [
     AUTOBOT / "autobot-496513-3ce948f2711e.json",
@@ -129,6 +131,31 @@ PROJECTS = {
             },
         ],
     },
+    "bollinger": {
+        "id": "bollinger",
+        "name": "볼린저 레버리지",
+        "short": "Bollinger Lev",
+        "description": "Bollinger_Lev.log → 수익률/MDD/CAGR + Sheet「Report」",
+        "root_path": str(BOLLINGER_ROOT),
+        "accept": ".log,.txt",
+        "multi_file": False,
+        "default_log": str(BOLLINGER_ROOT / "Bollinger_Lev.log"),
+        "sheet_url": "https://docs.google.com/spreadsheets/d/1yu_2Vjt2pKOYa70z5yt9phErRIelc7qx7Mp-na1DW5Q/edit#gid=197876950",
+        "sheet_tab": "Report",
+        "sheet_push_available": not IS_VERCEL,
+        "content_paths": [
+            {
+                "id": "Bollinger_Lev.log",
+                "label": "Bollinger_Lev.log",
+                "path": str(BOLLINGER_ROOT / "Bollinger_Lev.log"),
+            },
+            {
+                "id": "last_summary",
+                "label": "마지막 분석 JSON",
+                "path": str(OUTPUTS / "bollinger" / "summary.json"),
+            },
+        ],
+    },
 }
 
 
@@ -136,7 +163,7 @@ def ensure_dirs() -> None:
     for p in (UPLOADS, OUTPUTS, CACHE):
         p.mkdir(parents=True, exist_ok=True)
     if IS_VERCEL:
-        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT):
+        for p in (COIN_ROOT, SMALLCAP_ROOT, SUPERMA_ROOT, BOLLINGER_ROOT):
             p.mkdir(parents=True, exist_ok=True)
     for pid in PROJECTS:
         (OUTPUTS / pid).mkdir(parents=True, exist_ok=True)
