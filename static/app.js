@@ -130,6 +130,20 @@
       return fetch(url, options);
     }
   }
+  async function readJson(res) {
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch {
+      const snippet = text.replace(/\s+/g, " ").trim().slice(0, 180) || `(HTTP ${res.status})`;
+      throw new Error(snippet);
+    }
+  }
+  async function gzipFile(file) {
+    if (typeof CompressionStream !== "function") return file;
+    const stream = file.stream().pipeThrough(new CompressionStream("gzip"));
+    const blob = await new Response(stream).blob();
+    return new File([blob], `${file.name}.gz`, { type: "application/gzip" });
+  }
   function setBusy(button, busy, labelWhileBusy = null) {
     if (!button) return;
     if (busy) {
@@ -571,13 +585,15 @@
     showBanner("info", pushSheet ? "Step 1/2 · Analyzing log locally…" : "Analyzing log…");
 
     const fd = new FormData();
-    state.files.forEach((f) => fd.append("files", f));
+    for (const file of state.files) {
+      fd.append("files", await gzipFile(file));
+    }
     fd.append("push_sheet", "false");
     fd.append("use_openai", $("useOpenai").checked ? "true" : "false");
 
     try {
       const res = await apiFetch(`/api/analyze/${requestProject}`, { method: "POST", body: fd });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!data.ok) {
         if (token === state.requestToken && requestProject === state.projectId) {
           showBanner("error", data.error || "Analyze failed", data.trace || null);
@@ -623,7 +639,7 @@
     if (!projectId) return false;
     try {
       const res = await apiFetch(`/api/push/${encodeURIComponent(projectId)}`, { method: "POST" });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok || !data.ok) throw new Error(data.detail || data.error || `Sheet push failed (${res.status})`);
       if (projectId === state.projectId && token === state.requestToken && !silent) {
         showBanner("ok", "Google Sheet updated from current local files.");
@@ -673,7 +689,7 @@
           analysis: r,
         }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       state.narrativeByProject[state.projectId] = data;
       renderNarrative({ project_id: state.projectId, narrative: data });
       if (data.ok) showBanner("ok", "Narrative generated with gpt-5.6-sol.");

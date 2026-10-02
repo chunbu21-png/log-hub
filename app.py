@@ -96,10 +96,27 @@ def api_read_content(project_id: str, content_id: str):
         raise HTTPException(404, "unknown content id") from None
 
 
+MAX_UPLOAD_BYTES = 80 * 1024 * 1024
+
+
 def _as_bool(v) -> bool:
     if isinstance(v, bool):
         return v
     return str(v).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _decode_upload(data: bytes, filename: str) -> tuple[bytes, str]:
+    """Accept raw logs or gzip-compressed uploads (Vercel body limit is ~4.5MB)."""
+    name = Path(filename or "upload.log").name
+    if name.lower().endswith(".gz"):
+        name = name[:-3] or "upload.log"
+    if len(data) >= 2 and data[:2] == b"\x1f\x8b":
+        import gzip
+
+        data = gzip.decompress(data)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, f"decompressed log is too large ({len(data)} bytes)")
+    return data, name
 
 
 @app.post("/api/analyze/{project_id}")
@@ -121,9 +138,8 @@ async def api_analyze(
     dest_dir.mkdir(parents=True, exist_ok=True)
     saved: list[Path] = []
     for uf in files:
-        name = Path(uf.filename or "upload.log").name
+        data, name = _decode_upload(await uf.read(), uf.filename or "upload.log")
         path = dest_dir / name
-        data = await uf.read()
         path.write_bytes(data)
         saved.append(path)
 
