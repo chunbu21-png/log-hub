@@ -669,16 +669,19 @@
     const requestProject = state.projectId;
     const token = ++state.requestToken;
     hideBanner();
+    const projMeta = state.projects.find((x) => x.id === requestProject);
+    const autoSheet = requestProject === "smallcap" && Boolean(projMeta && projMeta.sheet_push_available);
+    const wantSheet = Boolean(pushSheet || autoSheet);
     const primaryBtn = pushSheet ? $("analyzePushBtn") : $("analyzeBtn");
-    setBusy(primaryBtn, true, pushSheet ? "Analyzing…" : "Analyzing…");
+    setBusy(primaryBtn, true, wantSheet ? "Analyzing…" : "Analyzing…");
     setBusy(pushSheet ? $("analyzeBtn") : $("analyzePushBtn"), true);
-    showBanner("info", pushSheet ? "Step 1/2 · Analyzing log locally…" : "Analyzing log…");
+    showBanner("info", wantSheet ? "Analyzing log and updating Google Sheet…" : "Analyzing log…");
 
     const fd = new FormData();
     for (const file of state.files) {
       fd.append("files", await gzipFile(file));
     }
-    fd.append("push_sheet", "false");
+    fd.append("push_sheet", wantSheet ? "true" : "false");
     fd.append("use_openai", $("useOpenai").checked ? "true" : "false");
 
     try {
@@ -694,9 +697,13 @@
       if (data.narrative !== undefined) state.narrativeByProject[requestProject] = data.narrative;
       if (token === state.requestToken && requestProject === state.projectId) {
         renderResult(data);
-        showBanner("ok", pushSheet ? "Step 1/2 · Analysis complete." : "Analysis complete.");
       }
-      if (pushSheet) {
+      const sheet = data.result && data.result.sheet;
+      if (sheet && sheet.ok) {
+        if (token === state.requestToken && requestProject === state.projectId) {
+          showBanner("ok", "Analysis complete and Google Sheet updated.");
+        }
+      } else if (wantSheet) {
         if (token === state.requestToken && requestProject === state.projectId) {
           showBanner("info", "Step 2/2 · Updating Google Sheet…");
         }
@@ -705,6 +712,8 @@
         if (token === state.requestToken && requestProject === state.projectId) {
           if (pushed) showBanner("ok", "Analysis complete and Google Sheet updated.");
         }
+      } else if (token === state.requestToken && requestProject === state.projectId) {
+        showBanner("ok", "Analysis complete.");
       }
     } catch (e) {
       if (token === state.requestToken) {

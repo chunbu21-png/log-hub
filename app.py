@@ -220,23 +220,11 @@ def api_push(project_id: str):
             ts = mark_sheet_push(project_id)
             return {**result, "pushed_at": ts}
         if project_id == "smallcap":
-            import sys
+            from services import smallcap_mtcb
 
-            from config import SMALLCAP_ROOT
-
-            scripts = str(SMALLCAP_ROOT / "scripts")
-            if scripts not in sys.path:
-                sys.path.insert(0, scripts)
-            from push_live_report_to_sheet import push as sheet_push
-
-            report_dir = SMALLCAP_ROOT / "result" / "live_report"
-            sheet_push(report_dir)
+            result = smallcap_mtcb.push_sheet()
             ts = mark_sheet_push(project_id)
-            return {
-                "ok": True,
-                "sheet_url": PROJECTS[project_id]["sheet_url"],
-                "pushed_at": ts,
-            }
+            return {**result, "pushed_at": ts}
         if project_id == "bollinger":
             from services import bollinger
 

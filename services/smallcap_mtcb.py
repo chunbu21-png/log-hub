@@ -1,15 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Canonical V19 smallcap live report + optional Sheet「리포트」push."""
+"""Canonical V19 smallcap live report + Sheet「리포트」push."""
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 from config import IS_VERCEL, OUTPUTS, SMALLCAP_ROOT
 from services.smallcap_report import build_report, parse_log, write_outputs
+from services.smallcap_sheet import SHEET_TAB, SHEET_URL
+from services.smallcap_sheet import push as write_report_tab
 
-SHEET_KEY = "1O4q7Vt2-W62Kp8xJ4SvRFucFhgDvg44muJ-3mgrOLIE"
+
+def push_sheet(report_dir: Path | None = None) -> dict:
+    if IS_VERCEL:
+        raise RuntimeError(
+            "Canonical Google Sheet push is not available on Vercel yet; "
+            "its service-account credentials are local-only."
+        )
+    out_dir = report_dir or (SMALLCAP_ROOT / "result" / "live_report")
+    if not (out_dir / "summary.json").is_file():
+        raise RuntimeError(f"missing live report in {out_dir} — analyze a Canonical log first")
+    return write_report_tab(out_dir)
 
 
 def run(log_path: Path, push_sheet: bool = False) -> dict:
@@ -29,7 +40,6 @@ def run(log_path: Path, push_sheet: bool = False) -> dict:
         json.dumps(canvas_data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    # Mirror into hub outputs + keep project canonical log
     hub_out = OUTPUTS / "smallcap"
     hub_out.mkdir(parents=True, exist_ok=True)
     (hub_out / "summary.json").write_text(
@@ -50,21 +60,10 @@ def run(log_path: Path, push_sheet: bool = False) -> dict:
 
     sheet_info: dict = {"ok": False, "skipped": True}
     if push_sheet:
-        if IS_VERCEL:
-            raise RuntimeError(
-                "Canonical Google Sheet push is not available on Vercel yet; "
-                "its service-account credentials are local-only."
-            )
-        scripts = SMALLCAP_ROOT / "scripts"
-        if str(scripts) not in sys.path:
-            sys.path.insert(0, str(scripts))
-        from push_live_report_to_sheet import push
-
-        push(out_dir)
-        sheet_info = {
-            "ok": True,
-            "sheet_url": f"https://docs.google.com/spreadsheets/d/{SHEET_KEY}/edit#gid=369475009",
-        }
+        try:
+            sheet_info = write_report_tab(out_dir)
+        except Exception as exc:  # noqa: BLE001
+            sheet_info = {"ok": False, "error": str(exc)}
 
     return {
         "summary": report["summary"],
@@ -77,6 +76,7 @@ def run(log_path: Path, push_sheet: bool = False) -> dict:
         "report_dir": str(out_dir),
         "saved_to": str(hub_out / "summary.json"),
         "project_log": str(dest_log),
-        "sheet_url": f"https://docs.google.com/spreadsheets/d/{SHEET_KEY}/edit#gid=369475009",
+        "sheet_url": SHEET_URL,
+        "sheet_tab": SHEET_TAB,
         "sheet": sheet_info,
     }
