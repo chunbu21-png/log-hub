@@ -5,8 +5,6 @@ from __future__ import annotations
 import ast
 import json
 import re
-import subprocess
-import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -385,28 +383,12 @@ def push_sheet(log_path: Path | None = None) -> dict:
             "StrategyD Google Sheet push is not available on Vercel yet; "
             "service-account credentials are local-only."
         )
-    script = STRATEGYD_ROOT / "push_live_to_strategyd_sheet.py"
-    if not script.is_file():
-        raise RuntimeError(f"Sheet publisher missing: {script}")
+    from services.strategyd_sheet import push as write_tab
+
+    dest = log_path or (STRATEGYD_ROOT / "okx_bot.log")
     if log_path:
-        _sync_project_log(log_path)
-    proc = subprocess.run(
-        [sys.executable, str(script)],
-        cwd=str(STRATEGYD_ROOT),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    if proc.returncode != 0:
-        detail = (proc.stderr or proc.stdout or "").strip()[-2000:]
-        raise RuntimeError(detail or f"Sheet push failed (exit {proc.returncode})")
-    return {
-        "ok": True,
-        "sheet_url": SHEET_URL,
-        "sheet_tab": SHEET_TAB,
-        "publisher_log": (proc.stdout or "")[-1500:],
-    }
+        dest = _sync_project_log(log_path)
+    return write_tab(dest)
 
 
 def run(log_path: Path, push: bool = False) -> dict:
@@ -436,7 +418,12 @@ def run(log_path: Path, push: bool = False) -> dict:
         encoding="utf-8",
     )
     if push:
-        payload["sheet"] = push_sheet(dest)
+        try:
+            from services.strategyd_sheet import push_parsed
+
+            payload["sheet"] = push_parsed(rows, cash_events, summary, notes)
+        except Exception as exc:  # noqa: BLE001
+            payload["sheet"] = {"ok": False, "error": str(exc)}
     else:
         payload["sheet"] = {"ok": False, "skipped": True}
     return payload
