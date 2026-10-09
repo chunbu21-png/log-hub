@@ -670,7 +670,8 @@
     const token = ++state.requestToken;
     hideBanner();
     const projMeta = state.projects.find((x) => x.id === requestProject);
-    const autoSheet = requestProject === "smallcap" && Boolean(projMeta && projMeta.sheet_push_available);
+    const autoSheet = ["smallcap", "coin"].includes(requestProject)
+      && Boolean(projMeta && projMeta.sheet_push_available);
     const wantSheet = Boolean(pushSheet || autoSheet);
     const primaryBtn = pushSheet ? $("analyzePushBtn") : $("analyzeBtn");
     setBusy(primaryBtn, true, wantSheet ? "Analyzing…" : "Analyzing…");

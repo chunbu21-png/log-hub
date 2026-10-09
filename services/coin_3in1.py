@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import json
-import sys
 from datetime import datetime
 from pathlib import Path
 
 from config import COIN_ROOT, IS_VERCEL, OUTPUTS
 from services.coin_parser import (
-    SHEET_KEY,
     apply_cashflow_adjust,
     parse_live_rows,
 )
+from services.coin_sheet import SHEET_TAB, SHEET_URL
+from services.coin_sheet import push as write_3in1_tab
 
 
 def _extract_trade_notes(lines: list[str], limit: int = 20) -> list[str]:
@@ -132,7 +132,8 @@ def analyze_text(text: str) -> dict:
         "series": series,
         "daily": [daily[k] for k in sorted(daily)],
         "trade_notes": _extract_trade_notes(lines),
-        "sheet_url": f"https://docs.google.com/spreadsheets/d/{SHEET_KEY}/edit#gid=1193052549",
+        "sheet_url": SHEET_URL,
+        "sheet_tab": SHEET_TAB,
     }
 
 
@@ -149,24 +150,16 @@ def save_local(result: dict, log_path: Path) -> Path:
     return out_dir / "summary.json"
 
 
-def push_sheet() -> dict:
-    """Run the existing publisher against project run.log."""
+def push_sheet(log_path: Path | None = None) -> dict:
     if IS_VERCEL:
         raise RuntimeError(
             "Coin Google Sheet push is not available on Vercel yet; "
-            "the original publisher and Google service-account credentials are local-only."
+            "service-account credentials are local-only."
         )
-
-    data_dir = COIN_ROOT / "data"
-    if str(data_dir) not in sys.path:
-        sys.path.insert(0, str(data_dir))
-    import push_live_ui_to_3in1_sheet as ui
-
-    ui.main()
-    return {
-        "ok": True,
-        "sheet_url": f"https://docs.google.com/spreadsheets/d/{SHEET_KEY}/edit#gid=1193052549",
-    }
+    dest = log_path or (COIN_ROOT / "run.log")
+    if not dest.is_file():
+        raise RuntimeError("missing run.log — analyze an OKX 3in1 log first")
+    return write_3in1_tab(dest)
 
 
 def run(log_path: Path, push: bool = False) -> dict:
@@ -176,7 +169,10 @@ def run(log_path: Path, push: bool = False) -> dict:
     result["saved_to"] = str(saved)
     result["project_log"] = str(COIN_ROOT / "run.log")
     if push:
-        result["sheet"] = push_sheet()
+        try:
+            result["sheet"] = write_3in1_tab(COIN_ROOT / "run.log")
+        except Exception as exc:  # noqa: BLE001
+            result["sheet"] = {"ok": False, "error": str(exc)}
     else:
         result["sheet"] = {"ok": False, "skipped": True}
     return result
